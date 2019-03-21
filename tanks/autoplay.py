@@ -4,6 +4,9 @@
 # Potrebujeme pro vypocty uhlu.
 import math
 
+# Potrebujeme pro nahodne uhybne manevry. :-O
+import random
+
 # Potrebujeme pro kresleni, spravu oken a tak.
 import pyglet
 from pyglet import gl
@@ -311,49 +314,100 @@ def pusteni(symbol, modifikatory):
 
 
 def mysli_rudy(i, t):
+    #return mysli_modry(i, t)
     nase_x, nase_y, nase_rotace = tanky[i]
     jeho_x, jeho_y, jeho_rotace = tanky[t]
 
-    # Absolutní panika - střílej hlava nehlava.
-    klavesy.add(('spoust', i))
+    # Nezastavujeme, odpocineme si na srotisti.
     klavesy.add(('vpred', i))
 
     # Koukej se po protivníkovi a snaž se to sypat jeho směrem.
     smer = math.atan2(jeho_x - nase_x, jeho_y - nase_y)
     smer = (math.degrees(smer) + nase_rotace) % 360
 
-    if smer < 5 or smer > 355:
-        klavesy.discard(('vpravo', i))
-        klavesy.discard(('vlevo', i))
-    elif smer > 180:
-        klavesy.discard(('vpravo', i))
-        klavesy.add(('vlevo', i))
+    # Budeme davat bacha na granaty...
+    bacha = False
+    for gx, gy, gr in granaty:
+        gs = math.atan2(nase_x - gx, nase_y - gy)
+        gs = (math.degrees(gs) + gr) % 360
+
+        if gs < 5 or gs > 355:
+            bacha = True
+
+    if bacha:
+        klavesy.discard(('spoust', i))
+
+        if ('vpravo', i) in klavesy:
+            klavesy.discard(('vlevo', i))
+        elif ('vlevo', i) in klavesy:
+            klavesy.discard(('vpravo', i))
+        else:
+            klavesy.add((random.choice(['vlevo', 'vpravo']), i))
+
     else:
-        klavesy.discard(('vlevo', i))
-        klavesy.add(('vpravo', i))
+        klavesy.add(('spoust', i))
+
+        if smer < 5 or smer > 355:
+            klavesy.discard(('vpravo', i))
+            klavesy.discard(('vlevo', i))
+        elif smer > 180:
+            klavesy.discard(('vpravo', i))
+            klavesy.add(('vlevo', i))
+        else:
+            klavesy.discard(('vlevo', i))
+            klavesy.add(('vpravo', i))
 
 
 def mysli_modry(i, t):
     nase_x, nase_y, nase_rotace = tanky[i]
     jeho_x, jeho_y, jeho_rotace = tanky[t]
 
-    # Absolutní panika - střílej hlava nehlava.
-    klavesy.add(('spoust', i))
-    klavesy.add(('vpred', i))
-
     # Koukej se po protivníkovi a snaž se to sypat jeho směrem.
     smer = math.atan2(jeho_x - nase_x, jeho_y - nase_y)
     smer = (math.degrees(smer) + nase_rotace) % 360
 
-    if smer < 5 or smer > 355:
-        klavesy.discard(('vpravo', i))
-        klavesy.discard(('vlevo', i))
-    elif smer > 180:
-        klavesy.discard(('vpravo', i))
-        klavesy.add(('vlevo', i))
+    # Budeme davat bacha na granaty...
+    bacha = False
+    for gx, gy, gr in granaty:
+        gs = math.atan2(nase_x - gx, nase_y - gy)
+        gs = (math.degrees(gs) + gr) % 360
+
+        if gs < 5 or gs > 355:
+            bacha = True
+            break
+
+    blizko = abs(jeho_x - nase_x) < 150 and abs(jeho_y - nase_y) < 150
+
+    if bacha:
+        klavesy.discard(('spoust', i))
+        klavesy.add(('vpred', i))
+
+        if ('vpravo', i) in klavesy:
+            klavesy.discard(('vlevo', i))
+        elif ('vlevo', i) in klavesy:
+            klavesy.discard(('vpravo', i))
+        else:
+            klavesy.add((random.choice(['vlevo', 'vpravo']), i))
+
     else:
-        klavesy.discard(('vlevo', i))
-        klavesy.add(('vpravo', i))
+        klavesy.add(('spoust', i))
+
+        if blizko:
+            klavesy.add(('zpet', i))
+            klavesy.discard(('vpred', i))
+        else:
+            klavesy.add(('vpred', i))
+            klavesy.discard(('zpet', i))
+
+        if smer < 5 or smer > 355:
+            klavesy.discard(('vpravo', i))
+            klavesy.discard(('vlevo', i))
+        elif smer > 180:
+            klavesy.discard(('vpravo', i))
+            klavesy.add(('vlevo', i))
+        else:
+            klavesy.discard(('vlevo', i))
+            klavesy.add(('vpravo', i))
 
 
 # Nastavime prvotni stav.
