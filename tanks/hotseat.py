@@ -124,7 +124,7 @@ def prepocitej(dt):
 
     # Posun granaty ve smeru letu.
     for i, (_, _, r) in enumerate(granaty):
-        uhel = math.pi * (r + 90) / 180
+        uhel = math.radians(r + 90)
         granaty[i][0] += dt * RYCHLOST_GRANATU * math.cos(uhel)
         granaty[i][1] += dt * RYCHLOST_GRANATU * math.sin(uhel)
 
@@ -146,7 +146,7 @@ def prepocitej(dt):
 
     # Posun tanky smerem pohybu.
     for i, (x, y, r) in enumerate(tanky):
-        uhel = math.pi * (r + 90) / 180
+        uhel = math.radians(r + 90)
         tanky[i][0] += dt * jizda[i] * RYCHLOST_JIZDY * math.cos(uhel)
         tanky[i][1] += dt * jizda[i] * RYCHLOST_JIZDY * math.sin(uhel)
 
@@ -174,7 +174,7 @@ def prepocitej(dt):
     # Strilej, pokud to hrac chce.
     for i, (x, y, r) in enumerate(tanky):
         if strelba[i] and not nabijeni[i]:
-            uhel = math.pi * (r + 90) / 180
+            uhel = math.radians(r + 90)
 
             granaty.append([
                 x + TANK_OBLAST_KOLIZE * math.cos(uhel),
