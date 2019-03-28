@@ -103,10 +103,10 @@ def prepocitej(dt):
 
     jizda = [
         (1.0 if ('vpred', 0) in klavesy else 0) -
-        (0.5 if ('zpet',  0) in klavesy else 0),
+        (1.0 if ('zpet',  0) in klavesy else 0),
 
         (1.0 if ('vpred', 1) in klavesy else 0) -
-        (0.5 if ('zpet',  1) in klavesy else 0),
+        (1.0 if ('zpet',  1) in klavesy else 0),
     ]
 
     rotace = [
