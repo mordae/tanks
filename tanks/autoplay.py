@@ -283,36 +283,6 @@ def vykresli():
                   barva=BARVY_TANKU[1])
 
 
-def stisk(symbol, modifikatory):
-    """Uzivatel tiskne hlavesu."""
-
-    if symbol == key.UP:
-        klavesy.add(('vpred', 1))
-    elif symbol == key.DOWN:
-        klavesy.add(('zpet', 1))
-    elif symbol == key.LEFT:
-        klavesy.add(('vlevo', 1))
-    elif symbol == key.RIGHT:
-        klavesy.add(('vpravo', 1))
-    elif symbol == key.SPACE:
-        klavesy.add(('spoust', 1))
-
-
-def pusteni(symbol, modifikatory):
-    """Uzivatel pustil klavesu."""
-
-    if symbol == key.UP:
-        klavesy.discard(('vpred', 1))
-    elif symbol == key.DOWN:
-        klavesy.discard(('zpet', 1))
-    elif symbol == key.LEFT:
-        klavesy.discard(('vlevo', 1))
-    elif symbol == key.RIGHT:
-        klavesy.discard(('vpravo', 1))
-    elif symbol == key.SPACE:
-        klavesy.discard(('spoust', 1))
-
-
 def mysli_rudy(i, t):
     #return mysli_modry(i, t)
     nase_x, nase_y, nase_rotace = tanky[i]
@@ -413,14 +383,15 @@ def mysli_modry(i, t):
 # Nastavime prvotni stav.
 reset()
 
+# Pripravime konfiguraci s vyhlazovanim (4x multisampling).
+config = pyglet.gl.Config(sample_buffers=1, samples=4)
+
 # Vytvorime okno, do ktereho budeme kreslit.
-window = pyglet.window.Window(width=SIRKA, height=VYSKA)
+window = pyglet.window.Window(width=SIRKA, height=VYSKA, config=config)
 
 # Oknu priradime funkce, ktere budou reagovat na udalosti.
 window.push_handlers(
     on_draw=vykresli,
-    on_key_press=stisk,
-    on_key_release=pusteni,
 )
 
 # Nastavime casovac na 60 fps.

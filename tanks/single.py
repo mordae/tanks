@@ -333,8 +333,11 @@ def mysli():
 # Nastavime prvotni stav.
 reset()
 
+# Pripravime konfiguraci s vyhlazovanim (4x multisampling).
+config = pyglet.gl.Config(sample_buffers=1, samples=4)
+
 # Vytvorime okno, do ktereho budeme kreslit.
-window = pyglet.window.Window(width=SIRKA, height=VYSKA)
+window = pyglet.window.Window(width=SIRKA, height=VYSKA, config=config)
 
 # Oknu priradime funkce, ktere budou reagovat na udalosti.
 window.push_handlers(
