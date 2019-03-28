@@ -90,6 +90,9 @@ def reset():
     granaty = deepcopy(GRANATY_START)
     nabijeni = deepcopy(NABIJENI_START)
 
+    tanky[0][1] += random.randrange(-100, +100)
+    tanky[1][1] += random.randrange(-100, +100)
+
 
 def se_srazi(x1, y1, x2, y2, polomer):
     return abs(x1 - x2) < polomer and abs(y1 - y2) < polomer
