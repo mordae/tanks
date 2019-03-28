@@ -70,6 +70,8 @@ NABIJENI_START = [DOBA_NABIJENI, DOBA_NABIJENI]
 
 ## Stav hry
 skore = [0, 0]
+ruda_pamet = {}
+modra_pamet = {}
 
 tanky = TANKY_START
 granaty = GRANATY_START
@@ -84,11 +86,13 @@ def reset():
     Skore zustava.
     """
 
-    global tanky, granaty, nabijeni
+    global tanky, granaty, nabijeni, ruda_pamet, modra_pamet
 
     tanky = deepcopy(TANKY_START)
     granaty = deepcopy(GRANATY_START)
     nabijeni = deepcopy(NABIJENI_START)
+    ruda_pamet = {}
+    modra_pamet = {}
 
     tanky[0][1] += random.randrange(-100, +100)
     tanky[1][1] += random.randrange(-100, +100)
@@ -103,8 +107,8 @@ def prepocitej(dt):
     Spocitej novy stav hry po uplynuti trochy casu (dt).
     """
 
-    mysli_rudy(0, 1)
-    mysli_modry(1, 0)
+    mysli_rudy(0, 1, ruda_pamet)
+    mysli_modry(1, 0, modra_pamet)
 
     global granaty
 
@@ -286,8 +290,7 @@ def vykresli():
                   barva=BARVY_TANKU[1])
 
 
-def mysli_rudy(i, t):
-    #return mysli_modry(i, t)
+def mysli_rudy(i, t, pamet):
     nase_x, nase_y, nase_rotace = tanky[i]
     jeho_x, jeho_y, jeho_rotace = tanky[t]
 
@@ -331,7 +334,7 @@ def mysli_rudy(i, t):
             klavesy.add(('vpravo', i))
 
 
-def mysli_modry(i, t):
+def mysli_modry(i, t, pamet):
     nase_x, nase_y, nase_rotace = tanky[i]
     jeho_x, jeho_y, jeho_rotace = tanky[t]
 
