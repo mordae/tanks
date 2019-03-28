@@ -4,6 +4,9 @@
 # Potrebujeme pro vypocty uhlu.
 import math
 
+# Potrebujeme pro nahodne uhybne manevry. :-O
+import random
+
 # Potrebujeme pro kresleni, spravu oken a tak.
 import pyglet
 from pyglet import gl
@@ -50,6 +53,10 @@ BARVY_TANKU = [(1.0, 0.1, 0.1), (0.1, 0.1, 1.0)]
 BARVA_HLAVNE = (1.0, 1.0, 0.1)
 BARVA_GRANATU = (1.0, 0.1, 0.1)
 
+# Kolik maji tanky na zacatku zivotu
+POCET_ZIVOTU = 3
+ZIVOT_ODSAZENI = SKORE_ODSAZENI + PISMO_VELIKOST + 30
+ZIVOT_VELIKOST = 10
 
 # Startovni polohy
 # Na zacatku mame dva tanky mirici na sebe pres celou obrazovku
@@ -67,6 +74,8 @@ NABIJENI_START = [DOBA_NABIJENI, DOBA_NABIJENI]
 
 ## Stav hry
 skore = [0, 0]
+zivoty = [POCET_ZIVOTU, POCET_ZIVOTU]
+ruda_pamet = {}
 
 tanky = TANKY_START
 granaty = GRANATY_START
@@ -81,11 +90,17 @@ def reset():
     Skore zustava.
     """
 
-    global tanky, granaty, nabijeni
+    global tanky, granaty, nabijeni, zivoty, ruda_pamet
 
     tanky = deepcopy(TANKY_START)
     granaty = deepcopy(GRANATY_START)
     nabijeni = deepcopy(NABIJENI_START)
+
+    zivoty = [POCET_ZIVOTU, POCET_ZIVOTU]
+    ruda_pamet = {}
+
+    tanky[0][1] += random.randrange(-100, +100)
+    tanky[1][1] += random.randrange(-100, +100)
 
 
 def se_srazi(x1, y1, x2, y2, polomer):
@@ -97,7 +112,7 @@ def prepocitej(dt):
     Spocitej novy stav hry po uplynuti trochy casu (dt).
     """
 
-    mysli()
+    mysli_rudy(0, 1, ruda_pamet)
 
     global granaty
 
@@ -122,6 +137,8 @@ def prepocitej(dt):
         ('spoust', 1) in klavesy,
     ]
 
+    hits = []
+
     # Posun granaty ve smeru letu.
     for i, (_, _, r) in enumerate(granaty):
         uhel = math.radians(r + 90)
@@ -134,8 +151,15 @@ def prepocitej(dt):
         # Pohlidej pripadne zasahy tanku. ;-)
         for j, (tx, ty, _) in enumerate(tanky):
             if se_srazi(gx, gy, tx, ty, TANK_OBLAST_ZASAHU):
-                skore[int(not j)] += 1
-                return reset()
+                zivoty[j] -= 1
+                hits.append([gx, gy, r])
+                if zivoty[j] <= 0:
+                    skore[int(not j)] += 1
+                    return reset()
+
+    for hit in hits:
+        if hit in granaty:
+            granaty.remove(hit)
 
     # Uchovej pouze granaty, ktere nevyletely z mapy.
     granaty = [g for g in granaty if 0 < g[0] < SIRKA and 0 < g[1] < VYSKA]
@@ -251,6 +275,22 @@ def nakresli_granat(x, y, rotace, barva):
     gl.glTranslatef(-x, -y, 0.0)
 
 
+def nakresli_zivot(x, y, barva):
+    """Nakresli zivot na dane pozici a v dane barve."""
+
+    gl.glTranslatef(x, y, 0.0)
+    gl.glRotatef(45, 0.0, 0.0, 1.0)
+    gl.glColor3f(*barva)
+    gl.glBegin(gl.GL_TRIANGLE_FAN)
+    gl.glVertex2f(-ZIVOT_VELIKOST / 2, -ZIVOT_VELIKOST / 2)
+    gl.glVertex2f(-ZIVOT_VELIKOST / 2, +ZIVOT_VELIKOST / 2)
+    gl.glVertex2f(+ZIVOT_VELIKOST / 2, +ZIVOT_VELIKOST / 2)
+    gl.glVertex2f(+ZIVOT_VELIKOST / 2, -ZIVOT_VELIKOST / 2)
+    gl.glEnd()
+    gl.glRotatef(-45, 0.0, 0.0, 1.0)
+    gl.glTranslatef(-x, -y, 0.0)
+
+
 def vykresli():
     """Vykresli stav hry."""
 
@@ -272,11 +312,17 @@ def vykresli():
                   zarovnani='left',
                   barva=BARVY_TANKU[0])
 
+    for i in range(zivoty[0]):
+        nakresli_zivot(SKORE_ODSAZENI + i * ZIVOT_VELIKOST * 2, VYSKA - ZIVOT_ODSAZENI, BARVY_TANKU[0])
+
     nakresli_text(str(skore[1]),
                   x=SIRKA - SKORE_ODSAZENI,
                   y=VYSKA - SKORE_ODSAZENI - PISMO_VELIKOST,
                   zarovnani='right',
                   barva=BARVY_TANKU[1])
+
+    for i in range(zivoty[1]):
+        nakresli_zivot(SIRKA - SKORE_ODSAZENI - i * ZIVOT_VELIKOST * 2, VYSKA - ZIVOT_ODSAZENI, BARVY_TANKU[1])
 
 
 def stisk(symbol, modifikatory):
@@ -309,25 +355,77 @@ def pusteni(symbol, modifikatory):
         klavesy.discard(('spoust', 1))
 
 
-def mysli():
-    # Absolutní panika - střílej hlava nehlava.
-    klavesy.add(('spoust', 0))
+def mysli_rudy(i, t, pamet):
+    nase_x, nase_y, nase_rotace = tanky[i]
+    jeho_x, jeho_y, jeho_rotace = tanky[t]
+
+    pamet.setdefault('blizko', False)
+    pamet.setdefault("bacha", False)
 
     # Koukej se po protivníkovi a snaž se to sypat jeho směrem.
-    smer = math.atan2(tanky[1][0] - tanky[0][0],
-                      tanky[1][1] - tanky[0][1])
+    smer = math.atan2(jeho_x - nase_x, jeho_y - nase_y)
+    smer = (math.degrees(smer) + nase_rotace) % 360
 
-    smer = (math.degrees(smer) + tanky[0][2]) % 360
+    # Budeme davat bacha na granaty...
+    bacha = False
+    for gx, gy, gr in granaty:
+        gs = math.atan2(nase_x - gx, nase_y - gy)
+        gs = (math.degrees(gs) + gr) % 360
+
+        if pamet["bacha"] and gs < 60 or gs > 300:
+            bacha = True
+            break
+        elif gs < 10 or gs > 350:
+            bacha = True
+            break
+
+    pamet["bacha"] = bacha
+
+    vzdalenost = ((jeho_x - nase_x) ** 2 + (jeho_y - nase_y) ** 2) ** (1/2)
+
+    if pamet["blizko"] and vzdalenost < 400:
+        blizko = True
+    elif vzdalenost < 200:
+        blizko = True
+    else:
+        blizko = False
+
+    pamet["blizko"] = blizko
+
+    if bacha:
+        if ('vpred', i) not in klavesy and ('zpet', i) not in klavesy:
+            klavesy.add(('vpred', i))
+
+        if gs < 10 or gs > 350:
+            if ('vpravo', i) in klavesy:
+                klavesy.discard(('vlevo', i))
+            elif ('vlevo', i) in klavesy:
+                klavesy.discard(('vpravo', i))
+            else:
+                klavesy.add((random.choice(['vlevo', 'vpravo']), i))
+
+    else:
+        if blizko:
+            klavesy.add(('zpet', i))
+            klavesy.discard(('vpred', i))
+        else:
+            klavesy.add(('vpred', i))
+            klavesy.discard(('zpet', i))
+
+        if smer < 5 or smer > 355:
+            klavesy.discard(('vpravo', i))
+            klavesy.discard(('vlevo', i))
+        elif smer > 180:
+            klavesy.discard(('vpravo', i))
+            klavesy.add(('vlevo', i))
+        else:
+            klavesy.discard(('vlevo', i))
+            klavesy.add(('vpravo', i))
 
     if smer < 5 or smer > 355:
-        klavesy.discard(('vpravo', 0))
-        klavesy.discard(('vlevo', 0))
-    elif smer > 180:
-        klavesy.discard(('vpravo', 0))
-        klavesy.add(('vlevo', 0))
+        klavesy.add(('spoust', i))
     else:
-        klavesy.discard(('vlevo', 0))
-        klavesy.add(('vpravo', 0))
+        klavesy.discard(('spoust', i))
 
 
 # Nastavime prvotni stav.
